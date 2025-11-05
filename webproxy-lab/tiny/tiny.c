@@ -6,41 +6,50 @@
  * Updated 11/2019 droh
  *   - Fixed sprintf() aliasing issue in serve_static(), and clienterror().
  */
-#include "csapp.h"
 
-void doit(int fd);
-void read_requesthdrs(rio_t *rp);
-int parse_uri(char *uri, char *filename, char *cgiargs);
-void serve_static(int fd, char *filename, int filesize);
-void get_filetype(char *filename, char *filetype);
-void serve_dynamic(int fd, char *filename, char *cgiargs);
-void clienterror(int fd, char *cause, char *errnum, char *shortmsg,
-                 char *longmsg);
+#include "tiny.h"
+//일단 패킷의 헤더를 읽어와서 요청의 크기를 알아 온후에, 다 받았다면,
+//그 때부터 doit을 실행하는 게 맞을 듯??
+//근데 함수 이름이 굉장히 마음에 들지 않는데 흠 ㅋㅋㅋ 이름 바꿔도 되려나 모르겠다.
+jobqueue* serverjobqueue = NULL;
 
 int main(int argc, char **argv)
 {
-  int listenfd, connfd;
-  char hostname[MAXLINE], port[MAXLINE];
-  socklen_t clientlen;
-  struct sockaddr_storage clientaddr;
+    serverjobqueue = calloc(1, sizeof(jobqueue));
+    jq_init(serverjobqueue);
+    
+    int listenfd;
+    char hostname[MAXLINE], port[MAXLINE];
+    socklen_t clientlen;
+    struct sockaddr_storage clientaddr;
+    
+    /* Check command line args */
+    if (argc != 2)
+    {
+        fprintf(stderr, "usage: %s <port>\n", argv[0]);
+        exit(1);
+    }
 
-  /* Check command line args */
-  if (argc != 2)
-  {
-    fprintf(stderr, "usage: %s <port>\n", argv[0]);
-    exit(1);
-  }
+    listenfd = Open_listenfd(argv[1]);
+    pthread_t thread;
+    handlerinit(listenfd, hostname, port);
+    pthread_create(&thread, NULL, thread_acceptHandler, NULL);
+    while (1)
+    {
+        action* cur = dequeue(serverjobqueue);
+        while (cur != NULL)
+        {
+            cur->fn(cur->args);
+            free(cur->args);
+            free(cur);
+            cur = dequeue(serverjobqueue);
+        }
+        usleep(50000);
+    }
+    
+}
 
-  listenfd = Open_listenfd(argv[1]);
-  while (1)
-  {
-    clientlen = sizeof(clientaddr);
-    connfd = Accept(listenfd, (SA *)&clientaddr,
-                    &clientlen); // line:netp:tiny:accept
-    Getnameinfo((SA *)&clientaddr, clientlen, hostname, MAXLINE, port, MAXLINE,
-                0);
-    printf("Accepted connection from (%s, %s)\n", hostname, port);
-    doit(connfd);  // line:netp:tiny:doit
-    Close(connfd); // line:netp:tiny:close
-  }
+jobqueue* getjobqueue()
+{
+    return serverjobqueue;
 }
