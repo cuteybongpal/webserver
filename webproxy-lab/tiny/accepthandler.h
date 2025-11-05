@@ -1,4 +1,6 @@
+#pragma once
 #include "csapp.h"
+
 typedef struct acceptdata
 {
     int fd;
@@ -10,5 +12,4 @@ typedef struct acceptdata
 void handlerinit();
 
 void* thread_acceptHandler(void* args);
-
-void accept();
+void* thread_onaccept(void* args);
