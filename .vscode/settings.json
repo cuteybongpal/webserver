@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "sendsocket.h": "c",
+        "pthread.h": "c",
+        "jobqueue.h": "c"
+    }
+}
