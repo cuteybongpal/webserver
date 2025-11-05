@@ -1,6 +1,14 @@
 #include "jobqueue.h"
 #include <stdio.h>
 
+void jq_init(jobqueue* q)
+{
+    q->head = NULL;
+    q->tail = NULL;
+
+    pthread_mutex_init(&(q->lock), NULL);
+}
+
 void enqueue(jobqueue* q, action* ac)
 {
     //락 걸기
@@ -9,10 +17,9 @@ void enqueue(jobqueue* q, action* ac)
     if (q->head == NULL)
     {
         q->head = ac;
-
-        
         q->tail = ac;
         pthread_mutex_unlock(&(q->lock));
+        printf("push\n");
         return;
     }
 
@@ -20,6 +27,7 @@ void enqueue(jobqueue* q, action* ac)
     q->tail = ac;
     //락 해제
     pthread_mutex_unlock(&q->lock);
+    printf("push\n");
 }
 
 action* dequeue(jobqueue* q)
@@ -39,12 +47,6 @@ action* dequeue(jobqueue* q)
     if (q->head == NULL)
         q->tail = NULL;
     pthread_mutex_unlock(&(q->lock));
+    printf("pop\n");
     return ac;
-}
-void init(jobqueue* q)
-{
-    q->head = NULL;
-    q->tail = NULL;
-
-    pthread_mutex_init(&(q->lock), NULL);
 }
